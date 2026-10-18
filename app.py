@@ -1,556 +1,388 @@
 
 import streamlit as st
+import streamlit.components.v1 as components
 import html
+import math
+import time
 
 st.set_page_config(
-    page_title="ROADSAFE AI | Road Safety Dashboard",
+    page_title="ROADSAFE AI | Cyberpunk HUD",
     page_icon="🚦",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
 
-# -------------------- DESIGN --------------------
-
+# ---------- THEME ----------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --bg: #07111f;
-    --panel: #101f33;
-    --panel2: #142941;
-    --blue: #36c5ff;
-    --cyan: #6de4ff;
-    --text: #edf7ff;
-    --muted: #9eb4ca;
+  --cyan: #00d9ff;
+  --blue: #147bff;
+  --navy: #030b1c;
+  --panel: rgba(5, 23, 48, .92);
+  --green: #00f5a0;
+  --amber: #ffc247;
+  --red: #ff416d;
 }
-
 .stApp {
-    background:
-        radial-gradient(ellipse at 15% 0%, #103257 0%, transparent 42%),
-        radial-gradient(ellipse at 95% 15%, #102849 0%, transparent 35%),
-        var(--bg);
-    color: var(--text);
-    font-family: 'Inter', sans-serif;
+  background:
+    radial-gradient(ellipse at 50% -15%, #10366c 0%, transparent 50%),
+    linear-gradient(140deg, #020817, #06152b 55%, #020817);
+  color: #eaf7ff;
+  font-family: Inter, sans-serif;
 }
-
-.block-container {
-    max-width: 1180px;
-    padding-top: 2rem;
-    padding-bottom: 3rem;
+header, footer, #MainMenu {visibility: hidden;}
+.block-container {max-width: 1450px; padding-top: 1.2rem; padding-bottom: 2rem;}
+h1, h2, h3 {font-family: Orbitron, sans-serif !important;}
+h1 {letter-spacing: 2px;}
+section[data-testid="stVerticalBlock"] {gap: 1rem;}
+.stTextInput label, .stSelectbox label {
+  color: #a9d8ff !important;
+  font-weight: 600 !important;
 }
-
-h1, h2, h3, p, label {
-    color: var(--text);
+.stTextInput input, .stSelectbox div[data-baseweb="select"] > div {
+  background: #06152b !important;
+  color: white !important;
+  border-color: #1266b8 !important;
+  border-radius: 9px !important;
 }
-
-.hero {
-    background: linear-gradient(115deg, #102b49, #0a1729 65%, #10334d);
-    border: 1px solid #244a6b;
-    border-radius: 24px;
-    padding: 30px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 12px 45px #00000035;
-    margin-bottom: 24px;
-}
-
-.hero:after {
-    content: "〰";
-    position: absolute;
-    right: 24px;
-    top: -50px;
-    font-size: 190px;
-    color: #36c5ff12;
-    transform: rotate(-20deg);
-}
-
-.eyebrow {
-    color: var(--cyan);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 3px;
-}
-
-.hero h1 {
-    font-size: clamp(32px, 5vw, 54px);
-    line-height: 1.1;
-    font-weight: 800;
-    margin: 12px 0;
-}
-
-.hero p {
-    color: #bed1e4;
-    max-width: 620px;
-}
-
-.pill {
-    display: inline-block;
-    border: 1px solid #32648a;
-    background: #102e49;
-    color: #80dcff;
-    padding: 7px 12px;
-    border-radius: 30px;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.section-title {
-    font-size: 23px;
-    font-weight: 800;
-    margin: 28px 0 5px;
-}
-
-.section-sub {
-    color: var(--muted);
-    margin-bottom: 18px;
-    font-size: 14px;
-}
-
-div[data-testid="stVerticalBlockBorderWrapper"] {
-    background: linear-gradient(145deg, #11243a, #0c1b2d);
-    border: 1px solid #223e59;
-    border-radius: 18px;
-}
-
-div[data-testid="stMetric"] {
-    background: #10263c;
-    border: 1px solid #244761;
-    padding: 16px;
-    border-radius: 15px;
-    transition: transform .25s ease, border-color .25s ease;
-}
-
-div[data-testid="stMetric"]:hover {
-    transform: translateY(-3px);
-    border-color: var(--blue);
-}
-
 .stButton > button {
-    background: linear-gradient(100deg, #1689e8, #24c6f5);
-    color: #031324;
-    border: none;
-    border-radius: 12px;
-    min-height: 49px;
-    font-weight: 800;
-    transition: transform .2s ease, box-shadow .2s ease;
+  width: 100%;
+  min-height: 52px;
+  color: white;
+  font-family: Orbitron, sans-serif;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border: 1px solid #50efff;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #0755cf, #00bff5, #0755cf);
+  background-size: 200% 100%;
+  box-shadow: 0 0 16px #007bff75, inset 0 0 12px #64eaff45;
+  transition: transform .2s, box-shadow .2s, background-position .4s;
 }
-
 .stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 24px #36c5ff55;
-    color: #031324;
-    border: none;
+  transform: translateY(-3px) scale(1.005);
+  background-position: 100% 0;
+  box-shadow: 0 0 30px #00d9ffb0;
 }
-
-div[data-baseweb="select"] > div,
-div[data-baseweb="input"] > div {
-    background: #0c1d30;
-    border-color: #2a4965;
-    border-radius: 10px;
+.hud {
+  background: linear-gradient(145deg, #071b36ee, #030b1bee);
+  border: 1px solid #087dcc;
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 22px #007bff0b, 0 0 15px #006bff12;
+  transition: transform .25s, border-color .25s, box-shadow .25s;
 }
-
+.hud:hover {
+  transform: translateY(-3px);
+  border-color: var(--cyan);
+  box-shadow: 0 0 22px #00bfff25, inset 0 0 20px #00bfff0b;
+}
+.eyebrow {color: var(--cyan); font-size: 11px; letter-spacing: 3px; font-weight: 700;}
+.hero {
+  padding: 28px;
+  border: 1px solid #087dcc;
+  border-radius: 18px;
+  background: linear-gradient(100deg, #04132cfa 20%, #06172dcc 70%, #051128ee);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 30px #007bff18;
+}
+.hero:after {
+  content:"";
+  position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(110deg, transparent 35%, #00d9ff09 50%, transparent 65%);
+  animation: sweep 5s linear infinite;
+}
+@keyframes sweep {from {transform:translateX(-100%)} to {transform:translateX(100%)}}
+@keyframes pulse {0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes scan {0%{transform:translateY(-100%)}100%{transform:translateY(800%)}}
+@keyframes rotate {to{transform:rotate(360deg)}}
+@keyframes flicker {0%,100%{opacity:1}50%{opacity:.75}}
+.status-dot {
+  display:inline-block; width:8px; height:8px; border-radius:50%;
+  background:var(--green); box-shadow:0 0 12px var(--green);
+  animation:pulse 1.4s infinite; margin-right:8px;
+}
+.stCaption {color:#8bb7df !important;}
 div[data-testid="stExpander"] {
-    background: #0e2034;
-    border: 1px solid #25415d;
-    border-radius: 13px;
-    margin-bottom: 9px;
+  border:1px solid #1266b8; border-radius:12px; background:#04132b;
 }
-
-.risk-card {
-    padding: 25px;
-    border-radius: 20px;
-    border: 1px solid var(--risk);
-    background: linear-gradient(120deg, var(--risk-bg), #0d1d30);
-    margin: 14px 0;
-    animation: rise-in .65s ease both;
-}
-
-.risk-name {
-    color: var(--risk);
-    font-size: clamp(30px, 5vw, 43px);
-    font-weight: 800;
-    letter-spacing: 1px;
-    margin: 6px 0;
-}
-
-.risk-track {
-    height: 12px;
-    border-radius: 30px;
-    background: #263a4f;
-    overflow: hidden;
-    margin-top: 18px;
-}
-
-.risk-fill {
-    height: 100%;
-    border-radius: 30px;
-    width: var(--progress);
-    background: linear-gradient(90deg, var(--risk), #ffffffaa);
-    animation: fill-meter 1.3s ease-out both;
-    box-shadow: 0 0 15px var(--risk);
-}
-
-.tip-card {
-    background: #10253a;
-    border: 1px solid #294761;
-    border-radius: 14px;
-    padding: 15px;
-    margin-bottom: 10px;
-    transition: transform .2s ease, border-color .2s ease;
-}
-
-.tip-card:hover {
-    transform: translateX(4px);
-    border-color: #36c5ff;
-}
-
-.tip-card strong {
-    color: #75dcff;
-}
-
-.footer {
-    text-align: center;
-    padding: 25px 10px;
-    color: #8da8c0;
-    font-size: 12px;
-}
-
-@keyframes fill-meter {
-    from { width: 0; }
-    to { width: var(--progress); }
-}
-
-@keyframes rise-in {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    *, *:before, *:after {
-        animation: none !important;
-        transition: none !important;
-    }
-}
+div[data-testid="stAlert"] {border-radius:12px;}
 </style>
 """, unsafe_allow_html=True)
 
-# -------------------- HERO --------------------
-
+# ---------- HERO ----------
 st.markdown("""
 <div class="hero">
-    <div class="eyebrow">INTELLIGENT ROAD SAFETY SYSTEM</div>
-    <h1>ROADSAFE <span style="color:#36c5ff">AI</span></h1>
-    <p>
-        Understand your travel conditions, assess potential hazards,
-        and get practical safety guidance before you start your journey.
-    </p>
-    <span class="pill">🚦 ROAD CONDITION ANALYSIS</span>
-    &nbsp; <span class="pill">🛡️ SAFETY FIRST</span>
+  <div class="eyebrow"><span class="status-dot"></span> ROAD SAFETY INTELLIGENCE SYSTEM</div>
+  <h1 style="font-size:clamp(30px,5vw,54px); margin:12px 0 4px;">
+    ROADSAFE <span style="color:#00d9ff;text-shadow:0 0 20px #00bfff;">AI</span>
+  </h1>
+  <div style="color:#a8d9ff;letter-spacing:2px;font-size:13px;">
+    ACCIDENT RISK ASSESSMENT • ROAD SAFETY ADVISORY
+  </div>
+  <p style="color:#00d9ff;margin-top:15px;font-style:italic;">
+    Plan your journey. Assess conditions. Travel safely.
+  </p>
+  <div class="eyebrow">SYSTEM STATUS: ONLINE &nbsp; / &nbsp; SAFETY MODE ACTIVE</div>
 </div>
 """, unsafe_allow_html=True)
 
-# Online image: requires internet access in the browser.
-st.image(
-    "https://images.unsplash.com/photo-1519608487953-e999c86e7455"
-    "?auto=format&fit=crop&w=1800&q=85",
-    caption="Plan ahead. Stay alert. Make every journey safer.",
-    use_container_width=True
-)
+st.write("")
 
-# -------------------- JOURNEY FORM --------------------
+# ---------- JOURNEY INPUTS ----------
+st.markdown('<div class="eyebrow">01 / JOURNEY CONFIGURATION</div>', unsafe_allow_html=True)
+st.markdown("## Your Journey")
 
-st.markdown(
-    '<div class="section-title">📍 Plan your journey</div>'
-    '<div class="section-sub">Enter your route and select the conditions you expect.</div>',
-    unsafe_allow_html=True
-)
+c1, c2 = st.columns(2)
+with c1:
+    start = st.text_input("📍 Starting Location", placeholder="e.g. Kochi")
+with c2:
+    destination = st.text_input("⚑ Destination", placeholder="e.g. Thrissur")
 
-with st.container(border=True):
-    c1, c2 = st.columns(2)
+st.write("")
+st.markdown('<div class="eyebrow">02 / ENVIRONMENTAL TELEMETRY</div>', unsafe_allow_html=True)
+st.markdown("## Road & Travel Conditions")
 
-    with c1:
-        start_location = st.text_input(
-            "Starting location",
-            placeholder="e.g. Kochi"
-        )
+a, b, c = st.columns(3)
+with a:
+    weather = st.selectbox("🌦️ Weather", ["Clear", "Cloudy", "Rainy", "Foggy"])
+    road = st.selectbox("🛣️ Road Condition", ["Dry", "Damp", "Wet"])
+with b:
+    traffic = st.selectbox("🚘 Traffic Density", ["Low", "Medium", "High"])
+    visibility = st.selectbox("👁️ Visibility", ["High", "Medium", "Low"])
+with c:
+    vehicle = st.selectbox("🚗 Vehicle Type", ["Car", "Motorcycle", "Scooter", "Bus", "Truck"])
+    st.markdown("""
+    <div class="hud" style="padding:13px;margin-top:3px;">
+      <div class="eyebrow">SAFETY PROTOCOL</div>
+      <div style="font-size:13px;color:#b4d9f7;margin-top:8px;">
+      Assess conditions before departure. Always follow local road rules.
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    with c2:
-        destination = st.text_input(
-            "Destination",
-            placeholder="e.g. Thrissur"
-        )
+st.write("")
+analyse = st.button("⌕  ANALYSE ROAD RISK  »", use_container_width=True)
 
-    st.markdown("#### 🌦️ Road & travel conditions")
+# ---------- RULE-BASED RISK CALCULATION ----------
+# This preserves the previous app's scoring rules.
+score = 0
+score += 2 if weather in ["Rainy", "Foggy"] else 1 if weather == "Cloudy" else 0
+score += 2 if road == "Wet" else 1 if road == "Damp" else 0
+score += 2 if traffic == "High" else 1 if traffic == "Medium" else 0
+score += 2 if visibility == "Low" else 1 if visibility == "Medium" else 0
 
-    c1, c2, c3 = st.columns(3)
+risk = "HIGH" if score >= 6 else "MODERATE" if score >= 3 else "LOW"
+risk_color = "#ff416d" if risk == "HIGH" else "#ffc247" if risk == "MODERATE" else "#00f5a0"
+risk_icon = "▲" if risk == "HIGH" else "◆" if risk == "MODERATE" else "✓"
+percentage = round(score / 8 * 100)
 
-    with c1:
-        weather = st.selectbox(
-            "Weather",
-            ["Clear", "Cloudy", "Rainy", "Foggy"]
-        )
-        road = st.selectbox(
-            "Road condition",
-            ["Dry", "Damp", "Wet"]
-        )
-
-    with c2:
-        traffic = st.selectbox(
-            "Traffic density",
-            ["Low", "Medium", "High"]
-        )
-        visibility = st.selectbox(
-            "Visibility",
-            ["High", "Medium", "Low"]
-        )
-
-    with c3:
-        vehicle = st.selectbox(
-            "Vehicle type",
-            ["Car", "Motorcycle", "Scooter", "Bus", "Truck"]
-        )
-
-    analyse = st.button(
-        "🔍  ANALYSE ROAD RISK",
-        type="primary",
-        use_container_width=True
-    )
-
-# -------------------- ANALYSIS --------------------
-
+# ---------- ANALYSIS ANIMATION ----------
 if analyse:
-    if not start_location.strip() or not destination.strip():
-        st.warning("Please enter both your starting location and destination.")
+    placeholder = st.empty()
+    for pct, message in [
+        (18, "INITIALISING ROAD CONDITION SCAN"),
+        (42, "CHECKING WEATHER & ROAD SURFACE"),
+        (68, "ANALYSING TRAFFIC & VISIBILITY"),
+        (88, "CALCULATING CONDITION SCORE"),
+        (100, "ASSESSMENT COMPLETE"),
+    ]:
+        placeholder.markdown(f"""
+        <div class="hud">
+          <div class="eyebrow"><span class="status-dot"></span> {message}</div>
+          <div style="height:7px;background:#10294a;border-radius:10px;margin-top:15px;overflow:hidden;">
+            <div style="height:100%;width:{pct}%;background:linear-gradient(90deg,#126dff,#00e5ff);
+            box-shadow:0 0 14px #00d9ff;border-radius:10px;transition:width .3s;"></div>
+          </div>
+          <div style="text-align:right;color:#00d9ff;font-size:12px;margin-top:6px;">{pct}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+        time.sleep(0.18)
+    st.session_state["roadsafe_analysed"] = True
 
-    else:
-        # Demonstration scoring rules, not a trained ML prediction.
-        score = 0
+# ---------- RISK GAUGE ----------
+def gauge_html(value, label, color):
+    circumference = 2 * math.pi * 82
+    dash = circumference * value / 100
+    return f"""
+    <div style="display:flex;justify-content:center;align-items:center;padding:10px 0 0;">
+      <svg viewBox="0 0 220 220" style="width:min(100%,290px);filter:drop-shadow(0 0 13px {color}55);">
+        <defs>
+          <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="{color}"/>
+            <stop offset="100%" stop-color="#087bff"/>
+          </linearGradient>
+        </defs>
+        <circle cx="110" cy="110" r="82" fill="none" stroke="#102a4c" stroke-width="14"/>
+        <circle cx="110" cy="110" r="82" fill="none" stroke="#164e86" stroke-width="2"
+          stroke-dasharray="3 8"/>
+        <circle cx="110" cy="110" r="82" fill="none" stroke="url(#ring)" stroke-width="12"
+          stroke-linecap="round" stroke-dasharray="{dash} {circumference}"
+          transform="rotate(-90 110 110)"
+          style="transition:stroke-dasharray 1.4s ease;"/>
+        <circle cx="110" cy="110" r="63" fill="#06152b" stroke="{color}55" stroke-width="1.5"/>
+        <circle cx="110" cy="45" r="4" fill="{color}" style="animation:pulse 1s infinite;"/>
+        <text x="110" y="91" text-anchor="middle" fill="{color}" font-size="13">RISK LEVEL</text>
+        <text x="110" y="123" text-anchor="middle" fill="#f1f8ff"
+          font-size="{19 if label == 'MODERATE' else 24}" font-family="Orbitron, sans-serif"
+          font-weight="700">{label}</text>
+        <text x="110" y="146" text-anchor="middle" fill="#8cb9df" font-size="11">{value}% SCORE</text>
+      </svg>
+    </div>
+    """
 
-        if weather in ["Rainy", "Foggy"]:
-            score += 2
-        elif weather == "Cloudy":
-            score += 1
+st.write("")
+st.markdown('<div class="eyebrow">03 / ASSESSMENT OUTPUT</div>', unsafe_allow_html=True)
+left, right = st.columns([1.65, 1])
 
-        if road == "Wet":
-            score += 2
-        elif road == "Damp":
-            score += 1
+with left:
+    st.markdown("""
+    <div class="hud" style="padding:0;min-height:250px;">
+      <div style="padding:15px 18px;position:relative;z-index:2;">
+        <div class="eyebrow">ROAD VISUALISATION / 01</div>
+        <div style="font-family:Orbitron,sans-serif;font-size:18px;margin-top:8px;">JOURNEY MONITOR</div>
+      </div>
+      <div style="height:190px;position:relative;overflow:hidden;
+        background:radial-gradient(ellipse at 50% 20%,#174d7d,#06162b 65%,#020817);">
+        <div style="position:absolute;inset:0;
+          background:repeating-linear-gradient(0deg,transparent 0 28px,#00d9ff0b 29px 30px),
+          repeating-linear-gradient(90deg,transparent 0 28px,#00d9ff0b 29px 30px);"></div>
+        <svg viewBox="0 0 600 190" preserveAspectRatio="xMidYMid slice"
+          style="position:absolute;width:100%;height:100%;">
+          <path d="M175 190 L255 15 L345 15 L425 190 Z" fill="#071225" stroke="#087dcc" stroke-width="2"/>
+          <path d="M295 190 L298 145 L300 120 L300 95 L300 65 L300 35"
+            stroke="#00d9ff" stroke-width="3" stroke-dasharray="12 13" fill="none"/>
+          <path d="M175 190 L255 15 M425 190 L345 15" stroke="#00bfff" stroke-width="2" fill="none"/>
+          <g fill="#00d9ff">
+            <circle cx="300" cy="157" r="4"><animate attributeName="opacity" values="1;.2;1" dur="1.3s" repeatCount="indefinite"/></circle>
+            <circle cx="300" cy="110" r="3"><animate attributeName="opacity" values=".2;1;.2" dur="1.3s" repeatCount="indefinite"/></circle>
+            <circle cx="300" cy="66" r="2"><animate attributeName="opacity" values="1;.2;1" dur="1.3s" repeatCount="indefinite"/></circle>
+          </g>
+          <path d="M0 180 L150 180 M450 180 L600 180" stroke="#147bff" stroke-width="2"/>
+        </svg>
+        <div style="position:absolute;bottom:12px;left:15px;font-size:11px;color:#00d9ff;letter-spacing:2px;">
+          <span class="status-dot"></span> TELEMETRY DISPLAY
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        if traffic == "High":
-            score += 2
-        elif traffic == "Medium":
-            score += 1
+with right:
+    st.markdown(f"""
+    <div class="hud" style="text-align:center;min-height:250px;border-color:{risk_color}88;">
+      <div class="eyebrow">ESTIMATED CONDITION RISK</div>
+      {gauge_html(percentage, risk, risk_color)}
+      <div style="font-family:Orbitron,sans-serif;color:{risk_color};font-size:13px;
+        animation:pulse 1.8s infinite;">{risk_icon} {risk} RISK STATUS</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        if visibility == "Low":
-            score += 2
-        elif visibility == "Medium":
-            score += 1
+st.write("")
+x, y, z = st.columns(3)
+with x:
+    st.markdown(f"""
+    <div class="hud">
+      <div class="eyebrow">ROUTE SUMMARY</div>
+      <div style="font-size:14px;margin-top:10px;">📍 {html.escape(start or 'Starting point not entered')}</div>
+      <div style="color:#00d9ff;padding:4px 0;">↓ JOURNEY ↓</div>
+      <div style="font-size:14px;">🏁 {html.escape(destination or 'Destination not entered')}</div>
+    </div>
+    """, unsafe_allow_html=True)
+with y:
+    st.markdown(f"""
+    <div class="hud">
+      <div class="eyebrow">VEHICLE PROFILE</div>
+      <div style="font-size:26px;margin-top:14px;">🚘</div>
+      <div style="font-size:18px;">{vehicle}</div>
+    </div>
+    """, unsafe_allow_html=True)
+with z:
+    st.markdown(f"""
+    <div class="hud">
+      <div class="eyebrow">CONDITION SCORE</div>
+      <div style="font-size:28px;font-family:Orbitron,sans-serif;margin-top:12px;">{score} <span style="color:#7598bb;">/ 8</span></div>
+      <div style="height:6px;background:#142b49;border-radius:8px;margin-top:12px;">
+        <div style="height:6px;width:{percentage}%;background:{risk_color};
+        border-radius:8px;box-shadow:0 0 10px {risk_color};"></div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        if score >= 6:
-            risk = "HIGH"
-            colour = "#ff5263"
-            risk_bg = "#501d2a"
-            symbol = "🔴"
-            summary = "Extra caution required"
-            advice = "Consider delaying non-essential travel if conditions are unsafe."
-        elif score >= 3:
-            risk = "MODERATE"
-            colour = "#ffbd4a"
-            risk_bg = "#49371c"
-            symbol = "🟠"
-            summary = "Drive with increased caution"
-            advice = "Allow extra time and adjust your driving to conditions."
-        else:
-            risk = "LOW"
-            colour = "#42e6a4"
-            risk_bg = "#123b34"
-            symbol = "🟢"
-            summary = "Continue to stay alert"
-            advice = "Keep following road rules and remain attentive."
+# ---------- DYNAMIC ADVISORY ----------
+st.write("")
+st.markdown('<div class="eyebrow">04 / SAFETY INTELLIGENCE</div>', unsafe_allow_html=True)
+st.markdown("## Key Recommendations")
 
-        st.markdown(
-            '<div class="section-title">📊 Your risk assessment</div>'
-            '<div class="section-sub">Review the result and safety guidance for your selected conditions.</div>',
-            unsafe_allow_html=True
-        )
+tips = []
+if weather in ["Rainy", "Foggy"]:
+    tips.append(("🌧️", "Weather alert", "Rain or fog can reduce visibility and grip. Slow down and increase following distance."))
+elif weather == "Cloudy":
+    tips.append(("🌥️", "Weather awareness", "Stay alert to changing weather and check conditions before departure."))
+else:
+    tips.append(("☀️", "Weather conditions", "Conditions selected as clear. Continue to watch the road and surroundings."))
 
-        progress = int(score / 8 * 100)
+if road == "Wet":
+    tips.append(("🛣️", "Wet road caution", "Brake gently, avoid sudden manoeuvres and leave extra stopping distance."))
+elif road == "Damp":
+    tips.append(("🚧", "Road surface caution", "Allow extra stopping distance on damp surfaces."))
+else:
+    tips.append(("🛣️", "Road surface", "Maintain safe gaps and avoid sudden lane changes."))
 
-        st.markdown(
-            f"""
-            <div class="risk-card" style="
-                --risk:{colour};
-                --risk-bg:{risk_bg};
-                --progress:{progress}%;
-            ">
-                <div style="font-size:12px;letter-spacing:2px;color:#c0d4e6">
-                    ESTIMATED RISK CATEGORY
+if traffic == "High":
+    tips.append(("🚦", "Traffic alert", "Expect congestion. Avoid distractions and follow traffic signals."))
+elif traffic == "Medium":
+    tips.append(("🚘", "Traffic awareness", "Keep a safe gap and anticipate the movement of nearby vehicles."))
+else:
+    tips.append(("🛣️", "Traffic conditions", "Low selected traffic does not remove the need for caution."))
+
+if visibility == "Low":
+    tips.append(("💡", "Visibility warning", "Use appropriate lights, reduce speed and avoid risky overtaking."))
+elif visibility == "Medium":
+    tips.append(("👁️", "Visibility caution", "Keep lights appropriate to conditions and remain attentive."))
+else:
+    tips.append(("👁️", "Visibility", "Continue checking mirrors and watch for pedestrians and cyclists."))
+
+for i in range(0, len(tips), 2):
+    cols = st.columns(2)
+    for j, col in enumerate(cols):
+        if i + j < len(tips):
+            icon, title, detail = tips[i + j]
+            with col:
+                st.markdown(f"""
+                <div class="hud" style="min-height:125px;margin-bottom:10px;">
+                  <div style="font-size:23px;">{icon}</div>
+                  <div style="color:#00d9ff;font-weight:700;margin:8px 0;">{title}</div>
+                  <div style="font-size:13px;color:#b7d4f0;line-height:1.6;">{detail}</div>
                 </div>
-                <div class="risk-name">{symbol} {risk} RISK</div>
-                <div style="font-size:16px;color:#e6f2fc">{summary}</div>
-                <div style="margin-top:8px;color:#b7ccdf">{advice}</div>
-                <div class="risk-track"><div class="risk-fill"></div></div>
-                <div style="display:flex;justify-content:space-between;
-                            margin-top:8px;font-size:12px;color:#a8c0d5">
-                    <span>Condition score</span>
-                    <span>{score}/8 • {progress}% of demonstration scale</span>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+                """, unsafe_allow_html=True)
 
-        # Route and condition overview
-        st.markdown("#### 🗺️ Journey overview")
+s1, s2, s3 = st.columns(3)
+with s1:
+    st.markdown('<div class="hud" style="text-align:center;">🪖<br><b>Seatbelts & Helmets</b><br><small>Wear the right protection for your vehicle.</small></div>', unsafe_allow_html=True)
+with s2:
+    st.markdown('<div class="hud" style="text-align:center;">💡<br><b>Lights & Visibility</b><br><small>Use lights suitable for road conditions.</small></div>', unsafe_allow_html=True)
+with s3:
+    st.markdown('<div class="hud" style="text-align:center;">🔧<br><b>Vehicle Check</b><br><small>Check tyres, brakes and mirrors before leaving.</small></div>', unsafe_allow_html=True)
 
-        c1, c2, c3 = st.columns(3)
-
-        with c1:
-            st.metric("🚘 Vehicle", vehicle)
-
-        with c2:
-            st.metric("🌦️ Weather", weather)
-
-        with c3:
-            st.metric("🚦 Traffic", traffic)
-
-        with st.container(border=True):
-            st.markdown("**📍 Your route**")
-            r1, r2 = st.columns(2)
-
-            with r1:
-                st.markdown("**FROM**")
-                st.write(start_location)
-
-            with r2:
-                st.markdown("**TO**")
-                st.write(destination)
-
-        # Recommendations
-        st.markdown("#### 🛡️ Priority safety recommendations")
-
-        priorities = []
-
-        if weather in ["Rainy", "Foggy"] or road == "Wet":
-            priorities.append((
-                "🌧️", "Slow down",
-                "Reduce speed gradually and increase your following distance."
-            ))
-
-        if visibility == "Low" or weather == "Foggy":
-            priorities.append((
-                "💡", "Improve visibility",
-                "Use low-beam headlights in fog and avoid high beams."
-            ))
-
-        if traffic == "High":
-            priorities.append((
-                "🚗", "Heavy traffic",
-                "Avoid sudden lane changes and maintain a safe gap."
-            ))
-
-        if road == "Wet":
-            priorities.append((
-                "🛣️", "Wet road",
-                "Brake gently and avoid sudden turns."
-            ))
-
-        if not priorities:
-            priorities.append((
-                "✅", "Stay alert",
-                "Follow speed limits, keep a safe distance, and watch for hazards."
-            ))
-
-        for icon, heading, detail in priorities:
-            st.markdown(
-                f"""
-                <div class="tip-card">
-                    <strong>{icon} &nbsp; {heading}</strong><br>
-                    <span style="color:#c4d5e5">{detail}</span>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-        # Vehicle-specific checklist
-        st.markdown("#### 🧰 Safety checklist")
-
-        with st.expander("🚦 Speed & safe distance", expanded=True):
-            st.markdown("""
-            - Follow posted speed limits and adapt to the conditions.
-            - Increase your following distance in rain or on wet roads.
-            - Avoid sudden braking, sharp turns, and risky overtaking.
-            """)
-
-        with st.expander("🪖 Seatbelts & helmets"):
-            if vehicle in ["Motorcycle", "Scooter"]:
-                st.markdown("""
-                - Wear a properly fitted, certified helmet and secure the chin strap.
-                - Ensure your passenger wears a helmet too.
-                - Wear protective clothing and suitable footwear.
-                """)
-            else:
-                st.markdown("""
-                - Fasten your seatbelt before moving.
-                - Ensure all passengers wear seatbelts.
-                - Use suitable child restraints when needed.
-                """)
-
-        with st.expander("💡 Lights & visibility"):
-            if weather == "Foggy" or visibility == "Low":
-                st.markdown("""
-                - Use low-beam headlights and fog lamps if fitted.
-                - Avoid high beams in fog.
-                - Keep windows clear and use demisters.
-                - If visibility becomes dangerously poor, stop somewhere safe away from traffic.
-                """)
-            elif weather == "Rainy":
-                st.markdown("""
-                - Use headlights when visibility is reduced.
-                - Check wipers, lights, and indicators.
-                - Keep windows clear.
-                """)
-            else:
-                st.markdown("""
-                - Check headlights, brake lights, and indicators.
-                - Signal before turning or changing lanes.
-                - Keep mirrors and windscreens clean.
-                """)
-
-        with st.expander("✅ Before you start"):
-            st.markdown("""
-            - Check tyres, brakes, and mirrors.
-            - Never use a phone while driving.
-            - Never drive under the influence of alcohol or drugs.
-            - Rest before travelling if tired.
-            - Follow traffic signs and instructions from authorities.
-            """)
-
-        st.markdown(
-            """
-            <div class="tip-card" style="text-align:center;border-color:#247d75">
-                <div style="font-size:24px">🛡️</div>
-                <strong style="color:#65e9bb">HAVE A SAFE JOURNEY!</strong>
-                <p style="color:#bed1e4;margin-bottom:0">
-                    Stay alert. Protect every passenger. Make every journey safer.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        st.caption(
-            "Limitations: this version uses predefined demonstration rules. "
-            "It does not use live route, weather, or traffic data and is not "
-            "a validated prediction of actual accidents. Locations are shown "
-            "for reference only. The animated meter represents the rule-based "
-            "condition score, not the probability of a crash."
-        )
-
+st.write("")
 st.markdown("""
-<div class="footer">
-    ROADSAFE AI · ROAD SAFETY AWARENESS PROJECT<br>
-    TECHNOLOGY FOR SAFER JOURNEYS
+<div class="hud" style="text-align:center;padding:24px;">
+  <div class="eyebrow">END OF ASSESSMENT</div>
+  <div style="font-family:Orbitron,sans-serif;color:#00d9ff;font-size:18px;margin-top:8px;">
+    HAVE A SAFE AND HAPPY JOURNEY
+  </div>
+  <div style="color:#b7d4f0;margin-top:8px;">Stay alert. Protect every passenger. Make every journey safer.</div>
 </div>
 """, unsafe_allow_html=True)
+
+st.caption(
+    "Important: This app applies predefined rules to the selected conditions. "
+    "It does not use live route, weather or traffic data and is not a validated prediction "
+    "of actual accidents. The entered locations are displayed for journey reference only."
+)
