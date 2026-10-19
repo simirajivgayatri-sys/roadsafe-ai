@@ -4,6 +4,8 @@ import streamlit.components.v1 as components
 import html
 import math
 import time
+from pathlib import Path
+import pandas as pd
 
 st.set_page_config(
     page_title="ROADSAFE AI | Cyberpunk HUD",
@@ -110,12 +112,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.write("")
-st.markdown('<div class="eyebrow">01 / JOURNEY CONFIGURATION</div>',
-            unsafe_allow_html=True)
+st.markdown(
+    '<div class="eyebrow">01 / JOURNEY CONFIGURATION</div>',
+    unsafe_allow_html=True
+)
 st.header("Your Journey")
 
 # -------------------- INPUT FORM --------------------
-# Results will only appear after the form is submitted.
 with st.form("roadsafe_form"):
     c1, c2 = st.columns(2)
 
@@ -142,18 +145,22 @@ with st.form("roadsafe_form"):
 
     with a:
         weather = st.selectbox(
-            "🌦️ Weather", ["Clear", "Cloudy", "Rainy", "Foggy"]
+            "🌦️ Weather",
+            ["Clear", "Cloudy", "Rainy", "Foggy"]
         )
         road = st.selectbox(
-            "🛣️ Road Condition", ["Dry", "Damp", "Wet"]
+            "🛣️ Road Condition",
+            ["Dry", "Damp", "Wet"]
         )
 
     with b:
         traffic = st.selectbox(
-            "🚘 Traffic Density", ["Low", "Medium", "High"]
+            "🚘 Traffic Density",
+            ["Low", "Medium", "High"]
         )
         visibility = st.selectbox(
-            "👁️ Visibility", ["High", "Medium", "Low"]
+            "👁️ Visibility",
+            ["High", "Medium", "Low"]
         )
 
     with c:
@@ -178,14 +185,87 @@ if submitted:
         st.warning("Please enter both your starting location and destination.")
 
     else:
-        # Original rule-based scoring logic
-        score = 0
-        score += 2 if weather in ["Rainy", "Foggy"] else 1 if weather == "Cloudy" else 0
-        score += 2 if road == "Wet" else 1 if road == "Damp" else 0
-        score += 2 if traffic == "High" else 1 if traffic == "Medium" else 0
-        score += 2 if visibility == "Low" else 1 if visibility == "Medium" else 0
+        # Use predictions exported from the trained Orange decision tree.
+        predictions_path = Path(__file__).with_name(
+            "roadsafe_predictions.csv"
+        )
 
-        risk = "HIGH" if score >= 6 else "MODERATE" if score >= 3 else "LOW"
+        if not predictions_path.exists():
+            st.error(
+                "The trained-model prediction file is missing. "
+                "Please make sure roadsafe_predictions.csv is uploaded "
+                "to the same GitHub repository folder as app.py."
+            )
+            st.stop()
+
+        try:
+            predictions_table = pd.read_csv(
+                predictions_path,
+                dtype=str
+            ).fillna("")
+        except Exception as error:
+            st.error(f"Could not read the prediction file: {error}")
+            st.stop()
+
+        required_columns = [
+            "Weather",
+            "Road Conditions",
+            "Traffic Density",
+            "Visibility",
+            "Risk Level",
+        ]
+
+        if not all(
+            column in predictions_table.columns
+            for column in required_columns
+        ):
+            st.error(
+                "The CSV columns do not match the expected format. "
+                "Please check roadsafe_predictions.csv."
+            )
+            st.stop()
+
+        # Match the selected conditions to the exported model prediction.
+        match = predictions_table[
+            (predictions_table["Weather"].str.strip() == weather)
+            & (
+                predictions_table["Road Conditions"].str.strip()
+                == road
+            )
+            & (
+                predictions_table["Traffic Density"].str.strip()
+                == traffic
+            )
+            & (
+                predictions_table["Visibility"].str.strip()
+                == visibility
+            )
+        ]
+
+        if match.empty:
+            st.error(
+                "These conditions were not found in the model prediction "
+                "table. Please check roadsafe_predictions.csv."
+            )
+            st.stop()
+
+        model_risk = str(
+            match.iloc[0]["Risk Level"]
+        ).strip().title()
+
+        risk_mapping = {
+            "High": "HIGH",
+            "Medium": "MODERATE",
+            "Low": "LOW",
+        }
+
+        if model_risk not in risk_mapping:
+            st.error(
+                f"Unexpected risk category in CSV: {model_risk}"
+            )
+            st.stop()
+
+        risk = risk_mapping[model_risk]
 
         risk_color = (
             "#ff416d" if risk == "HIGH"
@@ -193,17 +273,18 @@ if submitted:
             else "#00f5a0"
         )
 
-        percentage = round(score / 8 * 100)
-
         # -------------------- SCANNING ANIMATION --------------------
         st.write("")
-        progress = st.progress(0, text="INITIALISING ROAD CONDITION SCAN")
+        progress = st.progress(
+            0,
+            text="INITIALISING ROAD CONDITION SCAN"
+        )
 
         stages = [
             (20, "CHECKING WEATHER & ROAD SURFACE"),
             (45, "ANALYSING TRAFFIC"),
             (70, "CHECKING VISIBILITY"),
-            (90, "CALCULATING CONDITION SCORE"),
+            (90, "READING TRAINED MODEL OUTPUT"),
             (100, "ASSESSMENT COMPLETE"),
         ]
 
@@ -235,11 +316,10 @@ if submitted:
             </div>
             """, unsafe_allow_html=True)
 
-            # Escape user-entered text before inserting it into the SVG.
             safe_start = html.escape(start.strip())[:55]
             safe_destination = html.escape(destination.strip())[:55]
 
-            # This is an illustrative route diagram, not a real GPS map.
+            # Illustrative route diagram, not a real GPS map.
             map_html = f"""
             <!DOCTYPE html>
             <html>
@@ -303,7 +383,6 @@ if submitted:
               <svg viewBox="0 0 500 330"
                    style="position:absolute;width:100%;height:100%;"
                    preserveAspectRatio="xMidYMid meet">
-                <!-- Decorative city-road network -->
                 <path class="road" d="M-20 65 L110 115 L175 82 L280 120 L390 55 L520 100"/>
                 <path class="road-edge" d="M-20 65 L110 115 L175 82 L280 120 L390 55 L520 100"/>
                 <path class="road" d="M10 290 L100 230 L165 250 L255 190 L340 220 L510 150"/>
@@ -313,21 +392,18 @@ if submitted:
                 <path class="road" d="M420 -20 L390 55 L420 130 L385 205 L450 350"/>
                 <path class="road-edge" d="M420 -20 L390 55 L420 130 L385 205 L450 350"/>
 
-                <!-- Selected illustrative route -->
                 <path class="route"
                       d="M95 70 C130 95 140 145 205 158
                          S300 200 340 220 S390 245 420 270"/>
 
-                <!-- Start marker -->
                 <g class="pin">
                   <circle cx="95" cy="70" r="17" fill="#00d9ff" opacity=".18"/>
                   <circle cx="95" cy="70" r="8" fill="#00d9ff"
-                          stroke="#eafaff" stroke-width="2"/>
+                          stroke="#eaffff" stroke-width="2"/>
                 </g>
                 <text x="115" y="59" class="small">START</text>
                 <text x="115" y="75" class="label">{safe_start}</text>
 
-                <!-- Destination marker -->
                 <g class="pin">
                   <circle cx="420" cy="270" r="18" fill="#00f5a0" opacity=".18"/>
                   <circle cx="420" cy="270" r="9" fill="#00f5a0"
@@ -336,7 +412,6 @@ if submitted:
                 <text x="405" y="296" text-anchor="end" class="small">DESTINATION</text>
                 <text x="405" y="312" text-anchor="end" class="label">{safe_destination}</text>
 
-                <!-- Decorative map nodes -->
                 <g fill="#147bff">
                   <circle cx="175" cy="82" r="3"/>
                   <circle cx="280" cy="120" r="3"/>
@@ -356,12 +431,11 @@ if submitted:
         # -------------------- CIRCULAR RISK GAUGE --------------------
         with right:
             circumference = 2 * math.pi * 82
-            dash = circumference * percentage / 100
             gauge_font = 18 if risk == "MODERATE" else 23
 
             st.markdown(f"""
             <div class="hud" style="text-align:center;border-color:{risk_color}88;">
-              <div class="eyebrow">ESTIMATED CONDITION RISK</div>
+              <div class="eyebrow">TRAINED MODEL CLASSIFICATION</div>
               <svg viewBox="0 0 220 220"
                    style="width:100%;max-width:290px;filter:drop-shadow(0 0 13px {risk_color}55);">
                 <circle cx="110" cy="110" r="82" fill="none"
@@ -369,9 +443,8 @@ if submitted:
                 <circle cx="110" cy="110" r="82" fill="none"
                         stroke="{risk_color}" stroke-width="12"
                         stroke-linecap="round"
-                        stroke-dasharray="{dash} {circumference}"
-                        transform="rotate(-90 110 110)"
-                        style="transition:stroke-dasharray 1.2s ease;"/>
+                        stroke-dasharray="{circumference} {circumference}"
+                        transform="rotate(-90 110 110)"/>
                 <circle cx="110" cy="110" r="63" fill="#06152b"
                         stroke="{risk_color}55"/>
                 <circle cx="110" cy="28" r="4" fill="{risk_color}">
@@ -384,7 +457,7 @@ if submitted:
                       fill="#f1f8ff" font-size="{gauge_font}"
                       font-family="sans-serif" font-weight="700">{risk}</text>
                 <text x="110" y="145" text-anchor="middle"
-                      fill="#8cb9df" font-size="11">{percentage}% SCORE</text>
+                      fill="#8cb9df" font-size="11">MODEL OUTPUT</text>
               </svg>
               <div style="color:{risk_color};font-weight:700;">
                 {risk} RISK STATUS
@@ -392,7 +465,7 @@ if submitted:
             </div>
             """, unsafe_allow_html=True)
 
-        # -------------------- VEHICLE ICON FIX --------------------
+        # -------------------- VEHICLE SUMMARY --------------------
         vehicle_icons = {
             "Car": "🚗",
             "Motorcycle": "🏍️",
@@ -427,12 +500,10 @@ if submitted:
         with z:
             st.markdown(f"""
             <div class="hud">
-              <div class="eyebrow">CONDITION SCORE</div>
-              <h2 style="margin-top:14px;">{score} / 8</h2>
-              <div style="height:6px;background:#142b49;border-radius:8px;">
-                <div style="height:6px;width:{percentage}%;
-                  background:{risk_color};border-radius:8px;
-                  box-shadow:0 0 10px {risk_color};"></div>
+              <div class="eyebrow">TRAINED MODEL OUTPUT</div>
+              <h2 style="margin-top:14px;color:{risk_color};">{risk}</h2>
+              <div style="color:#b7d4f0;font-size:13px;line-height:1.6;">
+                Classified by the exported Orange decision tree.
               </div>
             </div>
             """, unsafe_allow_html=True)
@@ -567,8 +638,10 @@ if submitted:
         """, unsafe_allow_html=True)
 
         st.caption(
-            "This app applies predefined rules to selected conditions. "
-            "It does not use live route, weather or traffic data and is not a "
-            "validated prediction of actual accidents. The route diagram is "
-            "illustrative and does not represent a verified GPS route."
+            "Risk category is generated from predictions exported from a "
+            "trained Orange decision tree using the selected weather, road, "
+            "traffic and visibility inputs. This is not a validated estimate "
+            "of real-world accident probability and does not use live route, "
+            "weather or traffic data. The route diagram is illustrative, "
+            "not a verified GPS route."
         )
