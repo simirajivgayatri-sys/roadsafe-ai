@@ -240,37 +240,32 @@ if submitted:
             st.stop()
 
         # Match the user's selected conditions to the exported predictions.
+        
+        # Match the selected road conditions to Orange predictions.
         match = predictions_table[
             (
-                predictions_table["Weather"].str.strip()
-                == weather
+                predictions_table["Weather"].str.strip().str.casefold()
+                == weather.strip().casefold()
             )
             & (
-                predictions_table["Road Conditions"].str.strip()
-                == road
+                predictions_table["Road Conditions"].str.strip().str.casefold()
+                == road.strip().casefold()
             )
             & (
-                predictions_table["Traffic Density"].str.strip()
-                == traffic
+                predictions_table["Traffic Density"].str.strip().str.casefold()
+                == traffic.strip().casefold()
             )
             & (
-                predictions_table["Visibility"].str.strip()
-                == visibility
+                predictions_table["Visibility"].str.strip().str.casefold()
+                == visibility.strip().casefold()
             )
         ]
 
         if match.empty:
-            st.error(
-                "These conditions were not found in the prediction table. "
-                "Please check that the Orange file contains all "
-                "weather, road, traffic and visibility combinations."
-            )
+            st.error("No matching conditions found in the Orange prediction file.")
             st.stop()
 
-        # Tree (1) contains the predicted class from Orange.
-        model_risk = str(
-            match.iloc[0]["Tree (1)"]
-        ).strip().title()
+        model_risk = str(match.iloc[0]["Tree (1)"]).strip().title()
 
         risk_mapping = {
             "High": "HIGH",
@@ -279,10 +274,7 @@ if submitted:
         }
 
         if model_risk not in risk_mapping:
-            st.error(
-                f"Unexpected prediction in Tree (1): '{model_risk}'. "
-                "Expected High, Medium or Low. Check the Orange output."
-            )
+            st.error(f"Unexpected prediction: {model_risk}")
             st.stop()
 
         risk = risk_mapping[model_risk]
