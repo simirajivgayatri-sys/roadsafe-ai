@@ -1,0 +1,96 @@
+Risk Level	Sl. No.	State/UT/City	Tree (1)	Tree (1) (High)	Tree (1) (Low)	Tree (1) (Medium)	Tree (1) (error)	Road Accidents - Cases	Road Accidents - Injured	Road Accidents - Died	Railway Accidents - Cases	Railway Accidents - Injured	Railway Accidents - Died	Railway Crossing Accidents - Cases	Railway Crossing Accidents - Injured	Railway Crossing Accidents - Died	Total Traffic Accidents - Cases	Total Traffic Accidents - Injured	Total Traffic Accidents - Died	Weather	wet	Traffic Density	Visibility
+High Low Medium	string	string	High Low Medium	continuous	continuous	continuous	continuous	continuous	continuous	continuous	continuous	continuous	continuous	continuous	continuous	continuous	continuous	continuous	continuous	Clear Cloudy Foggy Rainy	Damp Dry Wet wet	High Low Medium	High Low Medium
+class	meta	meta	meta	meta	meta	meta	meta																
+High	1	Andhra Pradesh	Medium	0.333333	0	0.666667	0.666667	21070	21340	8293	1029	0	1037	0	0	0	22099	21340	9330	Rainy	Wet	Low	Low
+Low	2	Arunachal Pradesh	Low	0	1	0	0	215	177	152	0	0	0	0	0	0	215	177	152	Clear	Dry	Medium	Medium
+Medium	3	Assam	Medium	0	0	1	0	7028	5679	3060	689	0	693	22	0	22	7739	5679	3775	Cloudy	Damp	High	High
+High	4	Bihar	High	1	0	0	0	10801	7068	8898	1444	6	1446	52	0	53	12297	7074	10397	Foggy	Wet	Low	Low
+Medium	5	Chhattisgarh	Medium	0	0	1	0	13091	11459	5890	429	21	429	4	0	4	13524	11480	6323	Rainy	wet	Medium	Medium
+Medium	6	Goa	Medium	0	0	1	0	3012	1071	274	54	0	54	0	0	0	3066	1071	328	Clear	Wet	High	High
+High	7	Gujarat	Medium	0.166667	0	0.833333	0.833333	15777	15139	7634	766	0	777	6	0	6	16549	15139	8417	Cloudy	Dry	Low	Low
+Medium	8	Haryana	Medium	0	0.333333	0.666667	0.333333	10654	8353	5228	1127	26	1101	95	0	95	11876	8379	6424	Foggy	Damp	Medium	Medium
+High	9	Himachal Pradesh	High	0.833333	0	0.166667	0.166667	2484	3891	979	0	0	0	0	0	0	2484	3891	979	Rainy	Wet	High	High
+Medium	10	Jharkhand	Medium	0	0	1	0	5175	3747	3898	362	19	346	7	0	7	5544	3766	4251	Clear	wet	Low	Low
+High	11	Karnataka	Medium	0.333333	0	0.666667	0.666667	39765	48154	11705	0	0	0	0	0	0	39765	48154	11705	Cloudy	Wet	Medium	Medium
+High	12	Kerala	Medium	0.333333	0	0.666667	0.666667	43592	49317	4317	194	0	194	184	1	185	43970	49318	4696	Foggy	Dry	High	High
+High	13	Madhya Pradesh	Medium	0.333333	0	0.666667	0.666667	51965	51264	13918	1275	0	1275	239	0	239	53479	51264	15432	Rainy	Damp	Low	Low
+High	14	Maharashtra	High	0.5	0	0.5	0.5	30546	23878	15748	4827	1686	3145	0	0	0	35373	25564	18893	Clear	Wet	Medium	Medium
+Medium	15	Manipur	Medium	0	0	1	0	508	817	127	2	0	2	0	0	0	510	817	129	Cloudy	wet	High	High
+High	16	Meghalaya	High	1	0	0	0	246	310	162	0	0	0	0	0	0	246	310	162	Foggy	Wet	Low	Low
+Medium	17	Mizoram	Medium	0	0	1	0	71	28	83	0	0	0	0	0	0	71	28	83	Rainy	Dry	Medium	Medium
+Medium	18	Nagaland	Medium	0	0	1	0	24	42	22	0	0	0	5	0	5	29	42	27	Clear	Damp	High	High
+Medium	19	Odisha	Medium	0.166667	0	0.833333	0.166667	11663	10269	5470	27	0	27	54	54	0	11744	10323	5497	Cloudy	Wet	Low	Low
+Medium	20	Punjab	Medium	0	0	1	0	6122	3372	4688	978	74	914	0	0	0	7100	3446	5602	Foggy	wet	Medium	Medium
+High	21	Rajasthan	High	0.833333	0	0.166667	0.166667	23620	22249	11103	942	8	943	0	0	0	24562	22257	12046	Rainy	Wet	High	High
+Medium	22	Sikkim	Medium	0	0	1	0	199	371	98	0	0	0	0	0	0	199	371	98	Clear	Dry	Low	Low
+High	23	Tamil Nadu	High	0.5	0.5	0	0.5	64105	67703	17884	2012	189	1833	0	0	0	66117	67892	19717	Cloudy	Damp	Medium	Medium
+High	24	Telangana	Medium	0.25	0	0.75	0.75	21619	20209	7559	616	0	625	0	0	0	22235	20209	8184	Foggy	Wet	High	High
+Medium	25	Tripura	Medium	0	0	1	0	575	541	241	27	0	27	2	0	2	604	541	270	Rainy	wet	Low	Low
+High	26	Uttar Pradesh	High	0.5	0	0.5	0.5	36875	21696	24109	3190	35	3166	1340	4	1340	41405	21735	28615	Clear	Wet	Medium	Medium
+Medium	27	Uttarakhand	Medium	0.25	0	0.75	0.25	1674	1613	1042	74	0	74	1	0	1	1749	1613	1117	Cloudy	Dry	High	High
+High	28	West Bengal	High	1	0	0	0	10635	8124	5788	2221	286	1935	546	53	493	13402	8463	8216	Foggy	Damp	Low	Low
+High	Total (States)	Total (States)	Medium	0.333333	0	0.666667	0.666667	433111	407881	168370	22285	2350	20043	2557	112	2452	457953	410343	190865	Rainy	Wet	Medium	Medium
+Medium	29	Andaman and Nicobar Islands	Medium	0	0	1	0	141	136	19	0	0	0	0	0	0	141	136	19	Clear	wet	High	High
+Medium	30	Chandigarh	Medium	0.166667	0	0.833333	0.166667	238	203	83	0	0	0	0	0	0	238	203	83	Cloudy	Wet	Low	Low
+Low	31	Dadra and Nicoabr Haveli and Daman and Diu	Low	0	1	0	0	175	257	80	0	0	0	0	0	0	175	257	80	Foggy	Dry	Medium	Medium
+Medium	32	Delhi	High	0.833333	0	0.166667	0.833333	5560	4713	1461	796	105	691	0	0	0	6356	4818	2152	Rainy	Damp	High	High
+Medium	33	Jammu and Kashmir	Medium	0	0	1	0	6090	8350	838	49	2	49	3	0	3	6142	8352	890	Clear	Wet	Low	Low
+Medium	34	Ladakh	Medium	0	0	1	0	268	333	66	0	0	0	0	0	0	268	333	66	Cloudy	wet	Medium	Medium
+Medium	35	Lakshadweep	Medium	0.25	0	0.75	0.25	4	3	2	0	0	0	0	0	0	4	3	2	Foggy	Wet	High	High
+Medium	36	Puducherry	Medium	0	0	1	0	1181	1282	181	9	0	9	0	0	0	1190	1282	190	Rainy	Dry	Low	Low
+Medium	Total (UTs)	Total (UTs)	Medium	0	0.333333	0.666667	0.333333	13657	15277	2730	854	107	749	3	0	3	14514	15384	3482	Clear	Damp	Medium	Medium
+High	Total (All India)	Total (All India)	Medium	0.25	0	0.75	0.75	446768	423158	171100	23139	2457	20792	2560	112	2455	472467	425727	194347	Cloudy	Wet	High	High
+High	37	Agra	High	1	0	0	0	729	91	698	66	0	47	11	0	11	806	91	756	Foggy	wet	Low	Low
+Medium	38	Ahmedabad	Medium	0.333333	0	0.666667	0.333333	1711	1305	488	40	0	41	0	0	0	1751	1305	529	Rainy	Wet	Medium	Medium
+Medium	39	Amritsar	Medium	0	0	1	0	117	62	82	0	0	0	0	0	0	117	62	82	Clear	Dry	High	High
+Medium	40	Asansol	Medium	0	0	1	0	497	308	365	7	0	7	0	0	0	504	308	372	Cloudy	Damp	Low	Low
+Medium	41	Aurangabad	Medium	0	0	1	0	491	352	204	14	0	14	0	0	0	505	352	218	Foggy	Wet	Medium	Medium
+High	42	Bengaluru	High	0.5	0	0.5	0.5	3822	3189	772	0	0	0	0	0	0	3822	3189	772	Rainy	wet	High	High
+Medium	43	Bhopal	Medium	0	0	1	0	2788	2151	205	62	0	62	5	0	5	2855	2151	272	Clear	Wet	Low	Low
+Low	44	Chandigarh (city)	Low	0	1	0	0	238	203	83	0	0	0	0	0	0	238	203	83	Cloudy	Dry	Medium	Medium
+Medium	45	Chennai	Medium	0.25	0	0.75	0.25	3452	3724	507	0	0	0	0	0	0	3452	3724	507	Foggy	Damp	High	High
+Medium	46	Coimbatore	Medium	0.333333	0	0.666667	0.333333	1085	939	272	0	0	0	0	0	0	1085	939	272	Rainy	Wet	Low	Low
+Medium	47	Delhi (city)	Medium	0	0	1	0	5387	4572	1412	796	105	691	0	0	0	6183	4677	2103	Clear	wet	Medium	Medium
+Medium	48	Dhanbad	Medium	0.25	0	0.75	0.25	179	73	114	0	0	0	0	0	0	179	73	114	Cloudy	Wet	High	High
+High	49	Durg Bhilainagar	High	1	0	0	0	789	601	145	30	0	30	0	0	0	819	601	175	Foggy	Dry	Low	Low
+Medium	50	Faridabad	Medium	0	0	1	0	629	448	302	0	0	0	0	0	0	629	448	302	Rainy	Damp	Medium	Medium
+Medium	51	Ghaziabad	Medium	0	0	1	0	883	661	362	48	0	48	0	0	0	931	661	410	Clear	Wet	High	High
+Medium	52	Gwalior	Medium	0	0	1	0	1219	1096	151	0	0	0	13	0	13	1232	1096	164	Cloudy	wet	Low	Low
+Medium	53	Hyderabad	Medium	0	0	1	0	2516	2252	323	0	0	0	0	0	0	2516	2252	323	Foggy	Wet	Medium	Medium
+Medium	54	Indore	High	0.5	0	0.5	0.5	3317	2731	282	17	0	17	0	0	0	3334	2731	299	Rainy	Dry	High	High
+Medium	55	Jabalpur	Medium	0	0	1	0	2460	2439	167	0	0	0	0	0	0	2460	2439	167	Clear	Damp	Low	Low
+Medium	56	Jaipur	Medium	0.333333	0	0.666667	0.333333	2687	2162	765	153	0	153	0	0	0	2840	2162	918	Cloudy	Wet	Medium	Medium
+Medium	57	Jamshedpur	Medium	0.333333	0	0.666667	0.333333	167	115	68	0	0	0	0	0	0	167	115	68	Foggy	wet	High	High
+Medium	58	Jodhpur	Medium	0.333333	0	0.666667	0.333333	686	505	267	14	0	14	0	0	0	700	505	281	Rainy	Wet	Low	Low
+Low	59	Kannur	Low	0	1	0	0	1635	2118	149	21	0	21	0	0	0	1656	2118	170	Clear	Dry	Medium	Medium
+Medium	60	Kanpur	Medium	0	0	1	0	1595	955	640	0	0	0	155	0	155	1750	955	795	Cloudy	Damp	High	High
+High	61	Kochi	High	1	0	0	0	2432	2362	156	0	0	0	22	0	22	2454	2362	178	Foggy	Wet	Low	Low
+Medium	62	Kolkata	Medium	0	0	1	0	1037	816	217	0	0	0	0	0	0	1037	816	217	Rainy	wet	Medium	Medium
+Medium	63	Kollam	Medium	0	0	1	0	2083	2176	214	11	0	11	0	0	0	2094	2176	225	Clear	Wet	High	High
+Medium	64	Kota	Medium	0.166667	0	0.833333	0.166667	444	431	111	29	0	29	0	0	0	473	431	140	Cloudy	Dry	Low	Low
+Low	65	Kozhikode	Medium	0	0.333333	0.666667	0.666667	2054	2163	195	7	0	7	13	1	13	2074	2164	215	Foggy	Damp	Medium	Medium
+High	66	Lucknow	High	0.833333	0	0.166667	0.166667	1408	994	643	34	0	34	8	0	8	1450	994	685	Rainy	Wet	High	High
+Medium	67	Ludhiana	Medium	0	0	1	0	467	174	364	0	0	0	0	0	0	467	174	364	Clear	wet	Low	Low
+Medium	68	Madurai	Medium	0.333333	0	0.666667	0.333333	744	601	192	0	0	0	0	0	0	744	601	192	Cloudy	Wet	Medium	Medium
+Medium	69	Malappuram	Medium	0.333333	0	0.666667	0.333333	870	1098	116	3	0	3	0	0	0	873	1098	119	Foggy	Dry	High	High
+Medium	70	Meerut	Medium	0.333333	0	0.666667	0.333333	451	443	149	0	0	0	26	0	26	477	443	175	Rainy	Damp	Low	Low
+Medium	71	Mumbai	High	0.5	0	0.5	0.5	538	4	538	0	0	0	0	0	0	538	4	538	Clear	Wet	Medium	Medium
+Medium	72	Nagpur	Medium	0	0	1	0	1181	987	335	54	0	55	0	0	0	1235	987	390	Cloudy	wet	High	High
+High	73	Nasik	High	1	0	0	0	190	49	201	24	0	24	0	0	0	214	49	225	Foggy	Wet	Low	Low
+Medium	74	Patna	Medium	0	0	1	0	275	121	198	0	0	0	0	0	0	275	121	198	Rainy	Dry	Medium	Medium
+Medium	75	Prayagraj +	Medium	0	0	1	0	1370	886	603	0	0	0	0	0	0	1370	886	603	Clear	Damp	High	High
+Medium	76	Pune	Medium	0.166667	0	0.833333	0.166667	387	107	343	17	0	17	0	0	0	404	107	360	Cloudy	Wet	Low	Low
+Medium	77	Raipur	Medium	0	0	1	0	1021	575	186	33	0	33	0	0	0	1054	575	219	Foggy	wet	Medium	Medium
+High	78	Rajkot	High	0.833333	0	0.166667	0.166667	498	422	150	13	0	13	0	0	0	511	422	163	Rainy	Wet	High	High
+Medium	79	Ranchi	Medium	0	0	1	0	175	111	90	0	0	0	0	0	0	175	111	90	Clear	Dry	Low	Low
+Low	80	Srinagar	High	0.5	0.5	0	0.5	426	438	53	0	0	0	0	0	0	426	438	53	Cloudy	Damp	Medium	Medium
+Medium	81	Surat	Medium	0.25	0	0.75	0.25	683	553	293	36	0	37	0	0	0	719	553	330	Foggy	Wet	High	High
+Medium	82	Thiruvananthapuram	Medium	0.333333	0	0.666667	0.333333	1825	1910	171	0	0	0	18	0	18	1843	1910	189	Rainy	Wet	Low	Low
+Medium	83	Thrissur	High	0.5	0	0.5	0.5	2374	2711	210	0	0	0	0	0	0	2374	2711	210	Clear	Wet	Medium	Medium
+Medium	84	Tiruchirappalli	Medium	0.25	0	0.75	0.25	542	624	149	0	0	0	0	0	0	542	624	149	Cloudy	Dry	High	High
+High	85	Vadodara	High	1	0	0	0	478	378	181	5	0	5	0	0	0	483	378	186	Foggy	Damp	Low	Low
+Medium	86	Varanasi	Medium	0.333333	0	0.666667	0.333333	133	86	145	29	0	29	0	0	0	162	86	174	Rainy	Wet	Medium	Medium
+Medium	87	Vasai Virar	Medium	0	0	1	0	342	213	165	0	0	0	0	0	0	342	213	165	Clear	wet	High	High
+Medium	88	Vijayawada	Medium	0.166667	0	0.833333	0.166667	1543	1367	418	0	0	0	0	0	0	1543	1367	418	Cloudy	Wet	Low	Low
+Low	89	Vishakhapatnam	Low	0	1	0	0	1352	1288	358	0	0	0	0	0	0	1352	1288	358	Foggy	Dry	Medium	Medium
+High	Total (Cities)	Total (Cities)	High	0.833333	0	0.166667	0.166667	66402	57140	15967	1563	105	1442	271	1	271	68236	57246	17680	Rainy	Damp	High	High
