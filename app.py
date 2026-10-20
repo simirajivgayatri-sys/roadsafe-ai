@@ -185,49 +185,66 @@ if submitted:
         st.warning("Please enter both your starting location and destination.")
 
     else:
-        # Use predictions exported from the trained Orange decision tree.
+        # Load predictions exported from the Orange Decision Tree.
         predictions_path = Path(__file__).with_name(
-            "roadsafe_predictions.csv"
+            "roadsafe_predictions_new.tab"
         )
 
         if not predictions_path.exists():
             st.error(
-                "The trained-model prediction file is missing. "
-                "Please make sure roadsafe_predictions.csv is uploaded "
-                "to the same GitHub repository folder as app.py."
+                "Prediction file not found. Make sure "
+                "roadsafe_predictions_new.tab is uploaded to the "
+                "same GitHub folder as app.py."
             )
             st.stop()
 
         try:
+            # Orange .tab files contain column names, types and roles.
+            # Skip the type and role rows when reading the data.
             predictions_table = pd.read_csv(
                 predictions_path,
+                sep="\t",
+                skiprows=[1, 2],
                 dtype=str
             ).fillna("")
+
+            predictions_table.columns = [
+                str(column).strip()
+                for column in predictions_table.columns
+            ]
+
         except Exception as error:
-            st.error(f"Could not read the prediction file: {error}")
+            st.error(f"Could not read the Orange prediction file: {error}")
             st.stop()
 
+        # Check that the expected model output and input columns exist.
         required_columns = [
+            "Tree (1)",
             "Weather",
             "Road Conditions",
             "Traffic Density",
             "Visibility",
-            "Risk Level",
         ]
 
-        if not all(
-            column in predictions_table.columns
-            for column in required_columns
-        ):
+        missing_columns = [
+            column for column in required_columns
+            if column not in predictions_table.columns
+        ]
+
+        if missing_columns:
             st.error(
-                "The CSV columns do not match the expected format. "
-                "Please check roadsafe_predictions.csv."
+                "Some required columns are missing from the prediction "
+                "file: " + ", ".join(missing_columns)
+                + ". Check the headers in roadsafe_predictions_new.tab."
             )
             st.stop()
 
-        # Match the selected conditions to the exported model prediction.
+        # Match the user's selected conditions to the exported predictions.
         match = predictions_table[
-            (predictions_table["Weather"].str.strip() == weather)
+            (
+                predictions_table["Weather"].str.strip()
+                == weather
+            )
             & (
                 predictions_table["Road Conditions"].str.strip()
                 == road
@@ -244,13 +261,15 @@ if submitted:
 
         if match.empty:
             st.error(
-                "These conditions were not found in the model prediction "
-                "table. Please check roadsafe_predictions.csv."
+                "These conditions were not found in the prediction table. "
+                "Please check that the Orange file contains all "
+                "weather, road, traffic and visibility combinations."
             )
             st.stop()
 
+        # Tree (1) contains the predicted class from Orange.
         model_risk = str(
-            match.iloc[0]["Risk Level"]
+            match.iloc[0]["Tree (1)"]
         ).strip().title()
 
         risk_mapping = {
@@ -261,7 +280,8 @@ if submitted:
 
         if model_risk not in risk_mapping:
             st.error(
-                f"Unexpected risk category in CSV: {model_risk}"
+                f"Unexpected prediction in Tree (1): '{model_risk}'. "
+                "Expected High, Medium or Low. Check the Orange output."
             )
             st.stop()
 
