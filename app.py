@@ -178,6 +178,7 @@ with st.form("roadsafe_form"):
 
     submitted = st.form_submit_button("⌕  ANALYSE ROAD RISK  »")
 
+
 # -------------------- RESULTS --------------------
 if submitted:
 
@@ -185,26 +186,22 @@ if submitted:
         st.warning("Please enter both your starting location and destination.")
 
     else:
-        # Load predictions exported from the Orange Decision Tree.
+        # Read Random Forest predictions exported by Orange.
         predictions_path = Path(__file__).with_name(
-            "roadsafe_predictions_new.tab"
+            "roadsafe_predictions_rf.csv"
         )
 
         if not predictions_path.exists():
             st.error(
-                "Prediction file not found. Make sure "
-                "roadsafe_predictions_new.tab is uploaded to the "
-                "same GitHub folder as app.py."
+                "Random Forest prediction file not found. Upload "
+                "roadsafe_predictions_rf.csv to the same GitHub folder "
+                "as app.py."
             )
             st.stop()
 
         try:
-            # Orange .tab files contain column names, types and roles.
-            # Skip the type and role rows when reading the data.
             predictions_table = pd.read_csv(
                 predictions_path,
-                sep="\t",
-                skiprows=[1, 2],
                 dtype=str
             ).fillna("")
 
@@ -213,17 +210,37 @@ if submitted:
                 for column in predictions_table.columns
             ]
 
+            # Remove completely blank rows.
+            predictions_table = predictions_table.dropna(how="all")
+
+            # Remove possible Orange metadata rows.
+            metadata_values = {
+                "discrete", "continuous", "string", "time",
+                "class", "meta", "feature", "target"
+            }
+
+            if len(predictions_table) > 0:
+                first_row = {
+                    str(value).strip().casefold()
+                    for value in predictions_table.iloc[0].tolist()
+                    if str(value).strip()
+                }
+
+                if first_row and first_row.issubset(metadata_values):
+                    predictions_table = predictions_table.iloc[1:].copy()
+
+            predictions_table = predictions_table.reset_index(drop=True)
+
         except Exception as error:
-            st.error(f"Could not read the Orange prediction file: {error}")
+            st.error(f"Could not read the Random Forest CSV: {error}")
             st.stop()
 
-        # Check that the expected model output and input columns exist.
         required_columns = [
-            "Tree (1)",
             "Weather",
             "Road Conditions",
             "Traffic Density",
             "Visibility",
+            "Random Forest",
         ]
 
         missing_columns = [
@@ -233,39 +250,50 @@ if submitted:
 
         if missing_columns:
             st.error(
-                "Some required columns are missing from the prediction "
-                "file: " + ", ".join(missing_columns)
-                + ". Check the headers in roadsafe_predictions_new.tab."
+                "Missing columns in roadsafe_predictions_rf.csv: "
+                + ", ".join(missing_columns)
+                + ". Check the first row of the CSV."
             )
             st.stop()
 
-        # Match the user's selected conditions to the exported predictions.
-        
-        # Match the selected road conditions to Orange predictions.
+        # Normalize text fields before matching.
+        for column in required_columns:
+            predictions_table[column] = (
+                predictions_table[column].astype(str).str.strip()
+            )
+
+        # Match all four selected environmental conditions.
         match = predictions_table[
             (
-                predictions_table["Weather"].str.strip().str.casefold()
+                predictions_table["Weather"].str.casefold()
                 == weather.strip().casefold()
             )
             & (
-                predictions_table["Road Conditions"].str.strip().str.casefold()
+                predictions_table["Road Conditions"].str.casefold()
                 == road.strip().casefold()
             )
             & (
-                predictions_table["Traffic Density"].str.strip().str.casefold()
+                predictions_table["Traffic Density"].str.casefold()
                 == traffic.strip().casefold()
             )
             & (
-                predictions_table["Visibility"].str.strip().str.casefold()
+                predictions_table["Visibility"].str.casefold()
                 == visibility.strip().casefold()
             )
         ]
 
         if match.empty:
-            st.error("No matching conditions found in the Orange prediction file.")
+            st.error(
+                "No matching conditions found in the Random Forest "
+                "prediction file. Check that all 108 combinations "
+                "were exported and the column values match the form."
+            )
             st.stop()
 
-        model_risk = str(match.iloc[0]["Tree (1)"]).strip().title()
+        # Use the Random Forest prediction.
+        model_risk = str(
+            match.iloc[0]["Random Forest"]
+        ).strip().title()
 
         risk_mapping = {
             "High": "HIGH",
@@ -274,7 +302,7 @@ if submitted:
         }
 
         if model_risk not in risk_mapping:
-            st.error(f"Unexpected prediction: {model_risk}")
+            st.error(f"Unexpected Random Forest prediction: {model_risk}")
             st.stop()
 
         risk = risk_mapping[model_risk]
@@ -296,7 +324,7 @@ if submitted:
             (20, "CHECKING WEATHER & ROAD SURFACE"),
             (45, "ANALYSING TRAFFIC"),
             (70, "CHECKING VISIBILITY"),
-            (90, "READING TRAINED MODEL OUTPUT"),
+            (90, "READING RANDOM FOREST MODEL OUTPUT"),
             (100, "ASSESSMENT COMPLETE"),
         ]
 
@@ -447,7 +475,7 @@ if submitted:
 
             st.markdown(f"""
             <div class="hud" style="text-align:center;border-color:{risk_color}88;">
-              <div class="eyebrow">TRAINED MODEL CLASSIFICATION</div>
+              <div class="eyebrow">RANDOM FOREST CLASSIFICATION</div>
               <svg viewBox="0 0 220 220"
                    style="width:100%;max-width:290px;filter:drop-shadow(0 0 13px {risk_color}55);">
                 <circle cx="110" cy="110" r="82" fill="none"
@@ -512,10 +540,10 @@ if submitted:
         with z:
             st.markdown(f"""
             <div class="hud">
-              <div class="eyebrow">TRAINED MODEL OUTPUT</div>
+              <div class="eyebrow">RANDOM FOREST OUTPUT</div>
               <h2 style="margin-top:14px;color:{risk_color};">{risk}</h2>
               <div style="color:#b7d4f0;font-size:13px;line-height:1.6;">
-                Classified by the exported Orange decision tree.
+                Classified by the exported Orange Random Forest model.
               </div>
             </div>
             """, unsafe_allow_html=True)
@@ -651,9 +679,9 @@ if submitted:
 
         st.caption(
             "Risk category is generated from predictions exported from a "
-            "trained Orange decision tree using the selected weather, road, "
-            "traffic and visibility inputs. This is not a validated estimate "
-            "of real-world accident probability and does not use live route, "
-            "weather or traffic data. The route diagram is illustrative, "
-            "not a verified GPS route."
+            "trained Orange Random Forest model using selected weather, "
+            "road, traffic and visibility inputs. This is not a validated "
+            "estimate of real-world accident probability and does not use "
+            "live route, weather or traffic data. The route diagram is "
+            "illustrative, not a verified GPS route."
         )
