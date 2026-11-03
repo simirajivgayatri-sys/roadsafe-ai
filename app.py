@@ -1,4 +1,3 @@
-
 import streamlit as st
 import streamlit.components.v1 as components
 import html
@@ -6,6 +5,11 @@ import math
 import time
 from pathlib import Path
 import pandas as pd
+import pickle
+import numpy as np
+import requests
+
+import Orange
 
 st.set_page_config(
     page_title="ROADSAFE AI | Cyberpunk HUD",
@@ -13,6 +17,144 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+
+# -------------------- ORANGE MODEL --------------------
+@st.cache_resource
+def load_orange_model():
+    # Load only the trusted model file exported from your own Orange workflow.
+    model_file = Path(__file__).with_name("roadsafe_random_forest.pkcls")
+    if not model_file.exists():
+        raise FileNotFoundError(
+            "roadsafe_random_forest.pkcls is missing. "
+            "Place it in the same folder as app.py."
+        )
+    with model_file.open("rb") as f:
+        return pickle.load(f)
+
+
+def predict_risk(model, weather_value, road_value, traffic_value, visibility_value):
+    """Create one Orange data row using the model's saved feature domain."""
+    domain = model.domain
+    required = ["Weather", "Road Conditions", "Traffic Density", "Visibility"]
+    feature_by_name = {var.name: var for var in domain.attributes}
+
+    missing = [name for name in required if name not in feature_by_name]
+    if missing:
+        raise ValueError(
+            "The saved Orange model is missing expected features: "
+            + ", ".join(missing)
+        )
+
+    values = {
+        "Weather": weather_value,
+        "Road Conditions": road_value,
+        "Traffic Density": traffic_value,
+        "Visibility": visibility_value,
+    }
+
+    row = []
+    for var in domain.attributes:
+        value = values.get(var.name)
+        if value is None:
+            raise ValueError(f"Unexpected model feature: {var.name}")
+        if var.is_discrete:
+            if value not in var.values:
+                raise ValueError(
+                    f"'{value}' is not an allowed value for {var.name}. "
+                    f"Expected one of: {', '.join(var.values)}"
+                )
+            row.append(float(var.values.index(value)))
+        else:
+            row.append(float(value))
+
+    table = Orange.data.Table.from_numpy(
+        domain,
+        X=np.asarray([row], dtype=float),
+        Y=np.asarray([np.nan], dtype=float),
+    )
+    prediction = model(table)
+    predicted_index = int(prediction[0])
+    class_var = domain.class_var
+    if not class_var.is_discrete:
+        raise ValueError("The saved model's target is not a categorical risk level.")
+    return str(class_var.values[predicted_index])
+
+
+# -------------------- LIVE WEATHER --------------------
+@st.cache_data(ttl=600, show_spinner=False)
+def fetch_current_weather(place_name):
+    """Geocode a place and fetch current weather from Open-Meteo."""
+    geo_url = "https://geocoding-api.open-meteo.com/v1/search"
+    geo_response = requests.get(
+        geo_url,
+        params={"name": place_name, "count": 1, "language": "en", "format": "json"},
+        timeout=15,
+    )
+    geo_response.raise_for_status()
+    geo_results = geo_response.json().get("results", [])
+    if not geo_results:
+        raise ValueError(f"Could not find the location '{place_name}'. Try a nearby city.")
+
+    place = geo_results[0]
+    weather_url = "https://api.open-meteo.com/v1/forecast"
+    weather_response = requests.get(
+        weather_url,
+        params={
+            "latitude": place["latitude"],
+            "longitude": place["longitude"],
+            "current": (
+                "temperature_2m,relative_humidity_2m,precipitation,rain,"
+                "showers,snowfall,weather_code,cloud_cover,wind_speed_10m,visibility"
+            ),
+            "timezone": "auto",
+        },
+        timeout=15,
+    )
+    weather_response.raise_for_status()
+    current = weather_response.json().get("current", {})
+
+    code = int(current.get("weather_code", 0))
+    rain_now = (
+        float(current.get("precipitation", 0) or 0) > 0
+        or float(current.get("rain", 0) or 0) > 0
+        or float(current.get("showers", 0) or 0) > 0
+        or float(current.get("snowfall", 0) or 0) > 0
+    )
+
+    # Convert WMO weather codes into the four categories used by the model.
+    if code in [45, 48]:
+        weather_category = "Foggy"
+    elif rain_now or code in [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99]:
+        weather_category = "Rainy"
+    elif code in [1, 2, 3]:
+        weather_category = "Cloudy"
+    else:
+        weather_category = "Clear"
+
+    visibility_m = float(current.get("visibility", 10000) or 0)
+    if visibility_m >= 5000:
+        visibility_category = "High"
+    elif visibility_m >= 2000:
+        visibility_category = "Medium"
+    else:
+        visibility_category = "Low"
+
+    return {
+        "place": ", ".join(
+            part for part in [place.get("name"), place.get("admin1"), place.get("country")]
+            if part
+        ),
+        "weather": weather_category,
+        "visibility": visibility_category,
+        "temperature": current.get("temperature_2m"),
+        "humidity": current.get("relative_humidity_2m"),
+        "precipitation": current.get("precipitation"),
+        "wind_speed": current.get("wind_speed_10m"),
+        "visibility_m": visibility_m,
+        "weather_code": code,
+    }
+
 
 # -------------------- STYLING --------------------
 st.markdown("""
@@ -112,14 +254,17 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.write("")
-st.markdown(
-    '<div class="eyebrow">01 / JOURNEY CONFIGURATION</div>',
-    unsafe_allow_html=True
-)
+st.markdown('<div class="eyebrow">01 / JOURNEY CONFIGURATION</div>',
+            unsafe_allow_html=True)
 st.header("Your Journey")
-
 # -------------------- INPUT FORM --------------------
+# Results will only appear after the form is submitted.
 with st.form("roadsafe_form"):
+    use_live_weather = st.checkbox(
+        "🌦️ Automatically fetch current weather for the starting location",
+        value=True,
+        help="Uses Open-Meteo current weather and visibility. Uncheck to enter these manually."
+    )
     c1, c2 = st.columns(2)
 
     with c1:
@@ -145,22 +290,20 @@ with st.form("roadsafe_form"):
 
     with a:
         weather = st.selectbox(
-            "🌦️ Weather",
-            ["Clear", "Cloudy", "Rainy", "Foggy"]
+            "🌦️ Weather", ["Clear", "Cloudy", "Rainy", "Foggy"],
+            disabled=use_live_weather
         )
         road = st.selectbox(
-            "🛣️ Road Condition",
-            ["Dry", "Damp", "Wet"]
+            "🛣️ Road Condition", ["Dry", "Damp", "Wet"]
         )
 
     with b:
         traffic = st.selectbox(
-            "🚘 Traffic Density",
-            ["Low", "Medium", "High"]
+            "🚘 Traffic Density", ["Low", "Medium", "High"]
         )
         visibility = st.selectbox(
-            "👁️ Visibility",
-            ["High", "Medium", "Low"]
+            "👁️ Visibility", ["High", "Medium", "Low"],
+            disabled=use_live_weather
         )
 
     with c:
@@ -186,126 +329,34 @@ if submitted:
         st.warning("Please enter both your starting location and destination.")
 
     else:
-        # Read Random Forest predictions exported by Orange.
-        predictions_path = Path(__file__).with_name(
-            "roadsafe_predictions_rf.csv"
-        )
+        # Use live weather at the starting location, or the manual selections.
+        weather_details = None
+        if use_live_weather:
+            try:
+                with st.spinner("Fetching current weather for your starting location..."):
+                    weather_details = fetch_current_weather(start.strip())
+                weather = weather_details["weather"]
+                visibility = weather_details["visibility"]
+            except Exception as exc:
+                st.error(f"Could not retrieve live weather: {exc}")
+                st.info("Uncheck automatic weather and enter Weather and Visibility manually.")
+                st.stop()
 
-        if not predictions_path.exists():
-            st.error(
-                "Random Forest prediction file not found. Upload "
-                "roadsafe_predictions_rf.csv to the same GitHub folder "
-                "as app.py."
-            )
-            st.stop()
-
+        # Predict directly with the trained Orange Random Forest.
         try:
-            predictions_table = pd.read_csv(
-                predictions_path,
-                dtype=str
-            ).fillna("")
-
-            predictions_table.columns = [
-                str(column).strip()
-                for column in predictions_table.columns
-            ]
-
-            # Remove completely blank rows.
-            predictions_table = predictions_table.dropna(how="all")
-
-            # Remove possible Orange metadata rows.
-            metadata_values = {
-                "discrete", "continuous", "string", "time",
-                "class", "meta", "feature", "target"
-            }
-
-            if len(predictions_table) > 0:
-                first_row = {
-                    str(value).strip().casefold()
-                    for value in predictions_table.iloc[0].tolist()
-                    if str(value).strip()
-                }
-
-                if first_row and first_row.issubset(metadata_values):
-                    predictions_table = predictions_table.iloc[1:].copy()
-
-            predictions_table = predictions_table.reset_index(drop=True)
-
-        except Exception as error:
-            st.error(f"Could not read the Random Forest CSV: {error}")
+            orange_model = load_orange_model()
+            model_risk = predict_risk(
+                orange_model, weather, road, traffic, visibility
+            ).strip().title()
+        except Exception as exc:
+            st.error(f"Could not load or run the Orange model: {exc}")
             st.stop()
 
-        required_columns = [
-            "Weather",
-            "Road Conditions",
-            "Traffic Density",
-            "Visibility",
-            "Random Forest",
-        ]
-
-        missing_columns = [
-            column for column in required_columns
-            if column not in predictions_table.columns
-        ]
-
-        if missing_columns:
-            st.error(
-                "Missing columns in roadsafe_predictions_rf.csv: "
-                + ", ".join(missing_columns)
-                + ". Check the first row of the CSV."
-            )
+        if model_risk not in ["Low", "Medium", "High"]:
+            st.error(f"The Orange model returned an unexpected class: {model_risk}")
             st.stop()
 
-        # Normalize text fields before matching.
-        for column in required_columns:
-            predictions_table[column] = (
-                predictions_table[column].astype(str).str.strip()
-            )
-
-        # Match all four selected environmental conditions.
-        match = predictions_table[
-            (
-                predictions_table["Weather"].str.casefold()
-                == weather.strip().casefold()
-            )
-            & (
-                predictions_table["Road Conditions"].str.casefold()
-                == road.strip().casefold()
-            )
-            & (
-                predictions_table["Traffic Density"].str.casefold()
-                == traffic.strip().casefold()
-            )
-            & (
-                predictions_table["Visibility"].str.casefold()
-                == visibility.strip().casefold()
-            )
-        ]
-
-        if match.empty:
-            st.error(
-                "No matching conditions found in the Random Forest "
-                "prediction file. Check that all 108 combinations "
-                "were exported and the column values match the form."
-            )
-            st.stop()
-
-        # Use the Random Forest prediction.
-        model_risk = str(
-            match.iloc[0]["Random Forest"]
-        ).strip().title()
-
-        risk_mapping = {
-            "High": "HIGH",
-            "Medium": "MODERATE",
-            "Low": "LOW",
-        }
-
-        if model_risk not in risk_mapping:
-            st.error(f"Unexpected Random Forest prediction: {model_risk}")
-            st.stop()
-
-        risk = risk_mapping[model_risk]
+        risk = "HIGH" if model_risk == "High" else "MODERATE" if model_risk == "Medium" else "LOW"
 
         risk_color = (
             "#ff416d" if risk == "HIGH"
@@ -315,16 +366,13 @@ if submitted:
 
         # -------------------- SCANNING ANIMATION --------------------
         st.write("")
-        progress = st.progress(
-            0,
-            text="INITIALISING ROAD CONDITION SCAN"
-        )
+        progress = st.progress(0, text="INITIALISING ROAD CONDITION SCAN")
 
         stages = [
             (20, "CHECKING WEATHER & ROAD SURFACE"),
             (45, "ANALYSING TRAFFIC"),
             (70, "CHECKING VISIBILITY"),
-            (90, "READING RANDOM FOREST MODEL OUTPUT"),
+            (90, "CALCULATING CONDITION SCORE"),
             (100, "ASSESSMENT COMPLETE"),
         ]
 
@@ -342,6 +390,31 @@ if submitted:
         )
         st.header("Road Risk Analysis")
 
+        if weather_details:
+            st.markdown(
+                f"""
+                <div class="hud" style="margin:12px 0;">
+                  <div class="eyebrow">LIVE WEATHER / START LOCATION</div>
+                  <h3 style="margin:8px 0;">{html.escape(weather_details["place"])}</h3>
+                  <div style="color:#a9d8ff;">
+                    Current condition: <b>{weather}</b> &nbsp; | &nbsp;
+                    Visibility: <b>{visibility}</b>
+                  </div>
+                  <div style="color:#a9d8ff;margin-top:8px;">
+                    Temperature: <b>{weather_details["temperature"]} °C</b> &nbsp; · &nbsp;
+                    Humidity: <b>{weather_details["humidity"]}%</b> &nbsp; · &nbsp;
+                    Wind: <b>{weather_details["wind_speed"]} km/h</b> &nbsp; · &nbsp;
+                    Measured visibility: <b>{weather_details["visibility_m"] / 1000:.1f} km</b>
+                  </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            st.info(
+                f"Manual weather inputs used: {weather} weather and {visibility} visibility."
+            )
+
         # -------------------- MAP-STYLE JOURNEY MONITOR --------------------
         left, right = st.columns([1.5, 1])
 
@@ -356,10 +429,11 @@ if submitted:
             </div>
             """, unsafe_allow_html=True)
 
+            # Escape user-entered text before inserting it into the SVG.
             safe_start = html.escape(start.strip())[:55]
-            safe_destination = html.escape(destination.strip())[:55]
+            safe_destination = html.escape(destination.strip())
 
-            # Illustrative route diagram, not a real GPS map.
+            # This is an illustrative route diagram, not a real GPS map.
             map_html = f"""
             <!DOCTYPE html>
             <html>
@@ -423,6 +497,7 @@ if submitted:
               <svg viewBox="0 0 500 330"
                    style="position:absolute;width:100%;height:100%;"
                    preserveAspectRatio="xMidYMid meet">
+                <!-- Decorative city-road network -->
                 <path class="road" d="M-20 65 L110 115 L175 82 L280 120 L390 55 L520 100"/>
                 <path class="road-edge" d="M-20 65 L110 115 L175 82 L280 120 L390 55 L520 100"/>
                 <path class="road" d="M10 290 L100 230 L165 250 L255 190 L340 220 L510 150"/>
@@ -432,18 +507,21 @@ if submitted:
                 <path class="road" d="M420 -20 L390 55 L420 130 L385 205 L450 350"/>
                 <path class="road-edge" d="M420 -20 L390 55 L420 130 L385 205 L450 350"/>
 
+                <!-- Selected illustrative route -->
                 <path class="route"
                       d="M95 70 C130 95 140 145 205 158
                          S300 200 340 220 S390 245 420 270"/>
 
+                <!-- Start marker -->
                 <g class="pin">
                   <circle cx="95" cy="70" r="17" fill="#00d9ff" opacity=".18"/>
                   <circle cx="95" cy="70" r="8" fill="#00d9ff"
-                          stroke="#eaffff" stroke-width="2"/>
+                          stroke="#eafaff" stroke-width="2"/>
                 </g>
                 <text x="115" y="59" class="small">START</text>
                 <text x="115" y="75" class="label">{safe_start}</text>
 
+                <!-- Destination marker -->
                 <g class="pin">
                   <circle cx="420" cy="270" r="18" fill="#00f5a0" opacity=".18"/>
                   <circle cx="420" cy="270" r="9" fill="#00f5a0"
@@ -452,6 +530,7 @@ if submitted:
                 <text x="405" y="296" text-anchor="end" class="small">DESTINATION</text>
                 <text x="405" y="312" text-anchor="end" class="label">{safe_destination}</text>
 
+                <!-- Decorative map nodes -->
                 <g fill="#147bff">
                   <circle cx="175" cy="82" r="3"/>
                   <circle cx="280" cy="120" r="3"/>
@@ -471,11 +550,13 @@ if submitted:
         # -------------------- CIRCULAR RISK GAUGE --------------------
         with right:
             circumference = 2 * math.pi * 82
+            # The ring is decorative; the model does not output a probability.
+            dash = circumference
             gauge_font = 18 if risk == "MODERATE" else 23
 
             st.markdown(f"""
             <div class="hud" style="text-align:center;border-color:{risk_color}88;">
-              <div class="eyebrow">RANDOM FOREST CLASSIFICATION</div>
+              <div class="eyebrow">TRAINED MODEL CLASSIFICATION</div>
               <svg viewBox="0 0 220 220"
                    style="width:100%;max-width:290px;filter:drop-shadow(0 0 13px {risk_color}55);">
                 <circle cx="110" cy="110" r="82" fill="none"
@@ -483,8 +564,9 @@ if submitted:
                 <circle cx="110" cy="110" r="82" fill="none"
                         stroke="{risk_color}" stroke-width="12"
                         stroke-linecap="round"
-                        stroke-dasharray="{circumference} {circumference}"
-                        transform="rotate(-90 110 110)"/>
+                        stroke-dasharray="{dash} {circumference}"
+                        transform="rotate(-90 110 110)"
+                        style="transition:stroke-dasharray 1.2s ease;"/>
                 <circle cx="110" cy="110" r="63" fill="#06152b"
                         stroke="{risk_color}55"/>
                 <circle cx="110" cy="28" r="4" fill="{risk_color}">
@@ -497,15 +579,14 @@ if submitted:
                       fill="#f1f8ff" font-size="{gauge_font}"
                       font-family="sans-serif" font-weight="700">{risk}</text>
                 <text x="110" y="145" text-anchor="middle"
-                      fill="#8cb9df" font-size="11">MODEL OUTPUT</text>
+                      fill="#8cb9df" font-size="11">MODEL CLASS</text>
               </svg>
               <div style="color:{risk_color};font-weight:700;">
                 {risk} RISK STATUS
               </div>
             </div>
             """, unsafe_allow_html=True)
-
-        # -------------------- VEHICLE SUMMARY --------------------
+                    # -------------------- VEHICLE ICON FIX --------------------
         vehicle_icons = {
             "Car": "🚗",
             "Motorcycle": "🏍️",
@@ -540,10 +621,10 @@ if submitted:
         with z:
             st.markdown(f"""
             <div class="hud">
-              <div class="eyebrow">RANDOM FOREST OUTPUT</div>
+              <div class="eyebrow">TRAINED MODEL OUTPUT</div>
               <h2 style="margin-top:14px;color:{risk_color};">{risk}</h2>
               <div style="color:#b7d4f0;font-size:13px;line-height:1.6;">
-                Classified by the exported Orange Random Forest model.
+                Classified directly by the trained Orange Random Forest.
               </div>
             </div>
             """, unsafe_allow_html=True)
@@ -678,10 +759,10 @@ if submitted:
         """, unsafe_allow_html=True)
 
         st.caption(
-            "Risk category is generated from predictions exported from a "
-            "trained Orange Random Forest model using selected weather, "
-            "road, traffic and visibility inputs. This is not a validated "
-            "estimate of real-world accident probability and does not use "
-            "live route, weather or traffic data. The route diagram is "
-            "illustrative, not a verified GPS route."
+            "Risk category is predicted by the trained Orange Random Forest using "
+            "weather and visibility fetched from Open-Meteo when automatic weather "
+            "is enabled, plus the road and traffic conditions entered by the user. "
+            "This is a school-project demonstration, not a validated estimate of "
+            "real-world accident probability. Traffic is not fetched live, and the "
+            "route diagram is illustrative rather than a verified GPS route."
         )
