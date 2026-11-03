@@ -1,3 +1,4 @@
+
 import streamlit as st
 import streamlit.components.v1 as components
 import html
@@ -7,7 +8,6 @@ from pathlib import Path
 import pickle
 import numpy as np
 import requests
-import Orange
 
 st.set_page_config(
     page_title="ROADSAFE AI | Cyberpunk HUD",
@@ -29,6 +29,9 @@ if "journey_data" not in st.session_state:
 
 @st.cache_resource
 def load_orange_model():
+    # Import Orange only when the model is first required.
+    import Orange
+
     model_file = Path(__file__).with_name("roadsafe_random_forest.pkcls")
 
     if not model_file.exists():
@@ -43,6 +46,9 @@ def load_orange_model():
 
 def predict_risk(model, weather_value, road_value, traffic_value, visibility_value):
     """Encode four categories for the saved one-hot Orange model."""
+
+    # Orange is imported only when a prediction is requested.
+    import Orange
 
     domain = model.domain
 
