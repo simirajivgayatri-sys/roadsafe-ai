@@ -3,3 +3,5 @@ pandas
 numpy
 requests
 Orange3
+scikit-learn==1.5.2
+PyQt6
